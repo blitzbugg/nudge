@@ -1,0 +1,7 @@
+<svg width="512" height="512" viewBox="0 0 512 512" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <!-- "N" Graphic in solid black -->
+  <path d="M196 316V196L316 316V196" stroke="#000000" stroke-width="32" stroke-linecap="round" stroke-linejoin="round"/>
+  
+  <!-- Accent Dot in solid black -->
+  <circle cx="316" cy="196" r="18" fill="#000000"/>
+</svg>
