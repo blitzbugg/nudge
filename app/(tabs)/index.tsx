@@ -1,98 +1,225 @@
-import { Image } from 'expo-image';
-import { Platform, StyleSheet } from 'react-native';
-
-import { HelloWave } from '@/components/hello-wave';
-import ParallaxScrollView from '@/components/parallax-scroll-view';
-import { ThemedText } from '@/components/themed-text';
-import { ThemedView } from '@/components/themed-view';
-import { Link } from 'expo-router';
+import React, { useCallback, useEffect, useRef, useState } from 'react';
+import { View, Text, ScrollView, Pressable, StyleSheet, RefreshControl, Dimensions } from 'react-native';
+import { useRouter } from 'expo-router';
+import { SafeAreaView } from 'react-native-safe-area-context';
+import { Ionicons } from '@expo/vector-icons';
+import { Colors, Spacing, Typography, Layout } from '@/constants/theme';
+import { useTodayHabits } from '@/hooks/useHabits';
+import { ProgressCircle } from '@/components/home/ProgressCircle';
+import { HabitRow } from '@/components/home/HabitRow';
+import { EmptyState } from '@/components/ui/EmptyState';
+import { getGreeting, formatDayFull, todayStr } from '@/utils/date';
+import * as haptics from '@/services/haptics';
+import ConfettiCannon from 'react-native-confetti-cannon';
 
 export default function HomeScreen() {
-  return (
-    <ParallaxScrollView
-      headerBackgroundColor={{ light: '#A1CEDC', dark: '#1D3D47' }}
-      headerImage={
-        <Image
-          source={require('@/assets/images/partial-react-logo.png')}
-          style={styles.reactLogo}
-        />
-      }>
-      <ThemedView style={styles.titleContainer}>
-        <ThemedText type="title">Welcome!</ThemedText>
-        <HelloWave />
-      </ThemedView>
-      <ThemedView style={styles.stepContainer}>
-        <ThemedText type="subtitle">Step 1: Try it</ThemedText>
-        <ThemedText>
-          Edit <ThemedText type="defaultSemiBold">app/(tabs)/index.tsx</ThemedText> to see changes.
-          Press{' '}
-          <ThemedText type="defaultSemiBold">
-            {Platform.select({
-              ios: 'cmd + d',
-              android: 'cmd + m',
-              web: 'F12',
-            })}
-          </ThemedText>{' '}
-          to open developer tools.
-        </ThemedText>
-      </ThemedView>
-      <ThemedView style={styles.stepContainer}>
-        <Link href="/modal">
-          <Link.Trigger>
-            <ThemedText type="subtitle">Step 2: Explore</ThemedText>
-          </Link.Trigger>
-          <Link.Preview />
-          <Link.Menu>
-            <Link.MenuAction title="Action" icon="cube" onPress={() => alert('Action pressed')} />
-            <Link.MenuAction
-              title="Share"
-              icon="square.and.arrow.up"
-              onPress={() => alert('Share pressed')}
-            />
-            <Link.Menu title="More" icon="ellipsis">
-              <Link.MenuAction
-                title="Delete"
-                icon="trash"
-                destructive
-                onPress={() => alert('Delete pressed')}
-              />
-            </Link.Menu>
-          </Link.Menu>
-        </Link>
+  const router = useRouter();
+  const { habitsWithStatus, progress, loading, refresh } = useTodayHabits();
+  const [refreshing, setRefreshing] = React.useState(false);
+  const [celebrating, setCelebrating] = useState(false);
+  const wasComplete = useRef<boolean | null>(null);
 
-        <ThemedText>
-          {`Tap the Explore tab to learn more about what's included in this starter app.`}
-        </ThemedText>
-      </ThemedView>
-      <ThemedView style={styles.stepContainer}>
-        <ThemedText type="subtitle">Step 3: Get a fresh start</ThemedText>
-        <ThemedText>
-          {`When you're ready, run `}
-          <ThemedText type="defaultSemiBold">npm run reset-project</ThemedText> to get a fresh{' '}
-          <ThemedText type="defaultSemiBold">app</ThemedText> directory. This will move the current{' '}
-          <ThemedText type="defaultSemiBold">app</ThemedText> to{' '}
-          <ThemedText type="defaultSemiBold">app-example</ThemedText>.
-        </ThemedText>
-      </ThemedView>
-    </ParallaxScrollView>
+  useEffect(() => {
+    const complete = progress.total > 0 && progress.completed === progress.total;
+    if (wasComplete.current === false && complete) {
+      setCelebrating(true);
+      haptics.success();
+    }
+    wasComplete.current = complete;
+  }, [progress.completed, progress.total]);
+
+  const onRefresh = useCallback(async () => {
+    setRefreshing(true);
+    await refresh();
+    setRefreshing(false);
+  }, [refresh]);
+
+  const scheduledHabits = habitsWithStatus.filter((h) => h.scheduled);
+  const completedHabits = scheduledHabits.filter((h) => h.log?.is_completed);
+  const pendingHabits = scheduledHabits.filter((h) => !h.log?.is_completed);
+
+  const handleCreateHabit = useCallback(() => {
+    haptics.selection();
+    router.push('/habits/create');
+  }, [router]);
+
+  return (
+    <SafeAreaView style={styles.safe} edges={['top']}>
+      {celebrating && (
+        <View pointerEvents="none" style={styles.confetti}>
+          <ConfettiCannon
+            count={72}
+            origin={{ x: Dimensions.get('window').width / 2, y: 12 }}
+            colors={[Colors.light.primary, Colors.light.success, Colors.light.streak, '#3B82F6']}
+            fadeOut
+            fallSpeed={2600}
+            onAnimationEnd={() => setCelebrating(false)}
+          />
+        </View>
+      )}
+      <ScrollView
+        style={styles.container}
+        contentContainerStyle={styles.content}
+        refreshControl={
+          <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={Colors.light.primary} />
+        }
+        showsVerticalScrollIndicator={false}
+      >
+        {/* Header */}
+        <View style={styles.header}>
+          <View>
+            <Text style={styles.greeting}>{getGreeting()}</Text>
+            <Text style={styles.date}>{formatDayFull(todayStr())}</Text>
+          </View>
+        </View>
+
+        {/* Daily Progress */}
+        <View style={styles.progressSection}>
+          <ProgressCircle completed={progress.completed} total={progress.total} />
+          <Text style={styles.progressLabel}>Daily progress</Text>
+        </View>
+
+        {/* Habits */}
+        {scheduledHabits.length === 0 && !loading ? (
+          <EmptyState
+            icon="add-circle-outline"
+            title="No habits yet"
+            message="Start with one small habit that matters to you."
+            actionTitle="Create Habit"
+            onAction={handleCreateHabit}
+          />
+        ) : (
+          <View style={styles.habitsSection}>
+            {/* Completed */}
+            {completedHabits.length > 0 && (
+              <View>
+                <View style={styles.sectionRow}>
+                  <Text style={styles.sectionLabel}>COMPLETED</Text>
+                  <Text style={styles.sectionCount}>{completedHabits.length}</Text>
+                </View>
+                {completedHabits.map(({ habit, log }) => (
+                  <HabitRow
+                    key={habit.id}
+                    habit={habit}
+                    log={log}
+                    onPress={() => router.push({ pathname: '/habits/[id]', params: { id: habit.id } })}
+                  />
+                ))}
+              </View>
+            )}
+
+            {/* Remaining */}
+            {pendingHabits.length > 0 && (
+              <View>
+                <View style={styles.sectionRow}>
+                  <Text style={styles.sectionLabel}>REMAINING</Text>
+                  <Text style={styles.sectionCount}>{pendingHabits.length}</Text>
+                </View>
+                {pendingHabits.map(({ habit, log }) => (
+                  <HabitRow
+                    key={habit.id}
+                    habit={habit}
+                    log={log}
+                    onPress={() => router.push({ pathname: '/habits/[id]', params: { id: habit.id } })}
+                  />
+                ))}
+              </View>
+            )}
+          </View>
+        )}
+
+        {/* Quick Add */}
+        <Pressable
+          style={({ pressed }) => [styles.quickAdd, pressed && styles.quickAddPressed]}
+          onPress={handleCreateHabit}
+        >
+          <Ionicons name="add" size={20} color={Colors.light.primary} />
+          <Text style={styles.quickAddText}>Add Habit</Text>
+        </Pressable>
+
+        <View style={{ height: 40 }} />
+      </ScrollView>
+    </SafeAreaView>
   );
 }
 
 const styles = StyleSheet.create({
-  titleContainer: {
+  safe: {
+    flex: 1,
+    backgroundColor: Colors.light.background,
+  },
+  container: {
+    flex: 1,
+  },
+  content: {
+    paddingBottom: 100,
+  },
+  header: {
+    paddingHorizontal: Layout.screenPaddingHorizontal,
+    paddingTop: Spacing.lg,
+    paddingBottom: Spacing.md,
+  },
+  greeting: {
+    ...Typography.largeHeading,
+    color: Colors.light.text,
+  },
+  date: {
+    ...Typography.body,
+    color: Colors.light.textSecondary,
+    marginTop: Spacing.xxs,
+  },
+  progressSection: {
+    alignItems: 'center',
+    paddingVertical: Spacing.xxl,
+    gap: Spacing.sm,
+  },
+  progressLabel: {
+    ...Typography.secondary,
+    color: Colors.light.textTertiary,
+  },
+  habitsSection: {
+    gap: Spacing.xl,
+  },
+  sectionRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingHorizontal: Layout.screenPaddingHorizontal,
+    paddingTop: Spacing.md,
+    paddingBottom: Spacing.xs,
+  },
+  sectionLabel: {
+    ...Typography.captionMedium,
+    color: Colors.light.textTertiary,
+    letterSpacing: 0.5,
+  },
+  sectionCount: {
+    ...Typography.captionMedium,
+    color: Colors.light.textTertiary,
+  },
+  quickAdd: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 8,
+    justifyContent: 'center',
+    marginHorizontal: Layout.screenPaddingHorizontal,
+    marginTop: Spacing.lg,
+    paddingVertical: Spacing.md + 2,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderStyle: 'dashed',
+    borderColor: Colors.light.border,
+    gap: Spacing.sm,
   },
-  stepContainer: {
-    gap: 8,
-    marginBottom: 8,
+  quickAddPressed: {
+    backgroundColor: Colors.light.primarySoft,
+    borderColor: Colors.light.primary,
   },
-  reactLogo: {
-    height: 178,
-    width: 290,
-    bottom: 0,
-    left: 0,
-    position: 'absolute',
+  quickAddText: {
+    ...Typography.bodyMedium,
+    color: Colors.light.primary,
+  },
+  confetti: {
+    ...StyleSheet.absoluteFillObject,
+    zIndex: 10,
   },
 });
