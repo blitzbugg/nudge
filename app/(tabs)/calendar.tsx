@@ -6,6 +6,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { Colors, Spacing, Typography, Radius, Layout } from '@/constants/theme';
 import { HabitIcon } from '@/components/ui/HabitIcon';
 import { Divider } from '@/components/ui/Divider';
+import { TinyOtter } from '@/components/mascot';
 import {
   todayStr, monthYearDisplay, datesInMonth, parseDate,
   firstDayOfMonth, lastDayOfMonth, getDayOfWeek, dayShortName,
@@ -152,9 +153,15 @@ export default function CalendarScreen() {
 
         {/* Selected Day Details */}
         <Animated.View key={selectedDate} entering={FadeInDown.duration(220)} style={styles.dayDetails}>
-          <Text style={styles.dayDetailsTitle}>
-            {selectedDayHabits.filter(({ log }) => log).length} of {selectedDayHabits.length} completed
-          </Text>
+          <View style={styles.dayDetailsHeader}>
+            <Text style={styles.dayDetailsTitle}>
+              {selectedDayHabits.filter(({ log }) => log).length} of {selectedDayHabits.length} completed
+            </Text>
+            {/* Small otter observing the selected day */}
+            {selectedDayHabits.length > 0 && (
+              <TinyOtter state="curious" animate accessibilityLabel={null} />
+            )}
+          </View>
           <Divider />
           {selectedDayHabits.map(({ habit, log }) => (
             <View key={habit.id} style={styles.detailRow}>
@@ -168,7 +175,10 @@ export default function CalendarScreen() {
             </View>
           ))}
           {selectedDayHabits.length === 0 && (
-            <Text style={styles.noHabits}>No habits scheduled for this day.</Text>
+            <View style={styles.emptyDay}>
+              <TinyOtter state="sleepy" animate accessibilityLabel={null} />
+              <Text style={styles.noHabits}>No habits scheduled for this day.</Text>
+            </View>
           )}
         </Animated.View>
 
@@ -255,10 +265,20 @@ const styles = StyleSheet.create({
     marginTop: Spacing.xl,
     paddingHorizontal: Layout.screenPaddingHorizontal,
   },
+  dayDetailsHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: Spacing.sm,
+  },
   dayDetailsTitle: {
     ...Typography.secondaryMedium,
     color: Colors.light.textSecondary,
-    marginBottom: Spacing.sm,
+  },
+  emptyDay: {
+    alignItems: 'center',
+    paddingVertical: Spacing.xl,
+    gap: Spacing.sm,
   },
   detailRow: {
     flexDirection: 'row',
