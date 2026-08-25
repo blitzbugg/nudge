@@ -9,6 +9,8 @@ import { Colors, Spacing, Typography, Radius, Layout, HabitColors, HABIT_COLOR_N
 import { HabitIcon, HABIT_ICON_OPTIONS } from '@/components/ui/HabitIcon';
 import { Button } from '@/components/ui/Button';
 import { Divider } from '@/components/ui/Divider';
+import { TinyOtter } from '@/components/mascot';
+import type { OtterState } from '@/components/mascot';
 import { useHabitActions } from '@/hooks/useHabits';
 import type { HabitType, FrequencyType } from '@/types';
 import * as haptics from '@/services/haptics';
@@ -113,6 +115,16 @@ export default function CreateHabitScreen() {
     setChecklistItems((prev) => prev.filter((_, i) => i !== index));
   };
 
+  // Otter state per step
+  const stepOtterStates: OtterState[] = [
+    'curious',    // Type selection
+    'thinking',   // Details / naming
+    'neutral',    // Target
+    'sleepy',     // Schedule
+    'happy',      // Style / final
+  ];
+  const stepOtterState = stepOtterStates[step] ?? 'neutral';
+
   return (
     <KeyboardAvoidingView
       style={{ flex: 1 }}
@@ -130,6 +142,11 @@ export default function CreateHabitScreen() {
         </View>
 
         <Divider />
+
+        {/* Subtle otter guide */}
+        <View style={styles.otterGuide}>
+          <TinyOtter state={stepOtterState} animate accessibilityLabel={null} />
+        </View>
 
         {/* Step 0: Type */}
         {step === 0 && (
@@ -555,5 +572,9 @@ const styles = StyleSheet.create({
   addItemText: {
     ...Typography.secondary,
     color: Colors.light.primary,
+  },
+  otterGuide: {
+    alignItems: 'center',
+    paddingVertical: Spacing.sm,
   },
 });
