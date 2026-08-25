@@ -1,10 +1,13 @@
-# 🦦 Nudge
+<p align="center">
+  <img src="./assets/images/icon.png" alt="Nudge Logo" width="120" height="120" />
+</p>
 
-A simple, friendly habit tracker designed to help you build better habits one day at a time.
+<h1 align="center">🦦 Nudge</h1>
 
-Nudge keeps habit tracking simple — create your habits, check in every day, and watch your progress grow.
+<p align="center"><strong>A simple, friendly habit tracker designed to help you build better habits one day at a time.</strong></p>
 
-![Nudge](./assets/images/icon.png)
+<p align="center">Nudge keeps habit tracking simple — create your habits, check in every day, and watch your progress grow.</p>
+
 
 ## ✨ Features
 
