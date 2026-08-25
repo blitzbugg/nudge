@@ -1,50 +1,62 @@
-# Welcome to your Expo app 👋
+# 🦦 Nudge
 
-This is an [Expo](https://expo.dev) project created with [`create-expo-app`](https://www.npmjs.com/package/create-expo-app).
+A simple, friendly habit tracker designed to help you build better habits one day at a time.
 
-## Get started
+Nudge keeps habit tracking simple — create your habits, check in every day, and watch your progress grow.
 
-1. Install dependencies
+![Nudge](./assets/images/icon.png)
 
-   ```bash
-   npm install
-   ```
+## ✨ Features
 
-2. Start the app
+- 📝 Create and manage habits
+- ✅ Mark habits as completed each day
+- 🔥 Track your habit streaks
+- 📊 View your progress
+- 📅 Daily habit tracking
+- 🌙 Light and dark mode
+- 📱 Clean and simple mobile interface
+- 💾 Local-first experience
+- 📴 Works offline
+- 🔒 No account required
+- 🚫 No unnecessary tracking or telemetry
 
-   ```bash
-   npx expo start
-   ```
+## 🦦 Why Nudge?
 
-In the output, you'll find options to open the app in a
+Building habits shouldn't feel complicated.
 
-- [development build](https://docs.expo.dev/develop/development-builds/introduction/)
-- [Android emulator](https://docs.expo.dev/workflow/android-studio-emulator/)
-- [iOS simulator](https://docs.expo.dev/workflow/ios-simulator/)
-- [Expo Go](https://expo.dev/go), a limited sandbox for trying out app development with Expo
+Nudge is built around a simple idea: **small nudges can lead to big changes.**
 
-You can start developing by editing the files inside the **app** directory. This project uses [file-based routing](https://docs.expo.dev/router/introduction).
+Instead of overwhelming you with complicated productivity systems, Nudge focuses on helping you consistently show up for the habits that matter.
 
-## Get a fresh project
+## 📱 Download
 
-When you're ready, run:
+The first public release is available as an Android APK.
 
-```bash
-npm run reset-project
-```
+**Nudge v1.0.0**
 
-This command will move the starter code to the **app-example** directory and create a blank **app** directory where you can start developing.
+Download the APK from the [GitHub Releases](../../releases) page.
 
-## Learn more
+## 🛠️ Built With
 
-To learn more about developing your project with Expo, look at the following resources:
+- React Native
+- Expo
+- TypeScript
+- Expo Router
+- React Native Reanimated
+- SQLite
 
-- [Expo documentation](https://docs.expo.dev/): Learn fundamentals, or go into advanced topics with our [guides](https://docs.expo.dev/guides).
-- [Learn Expo tutorial](https://docs.expo.dev/tutorial/introduction/): Follow a step-by-step tutorial where you'll create a project that runs on Android, iOS, and the web.
+## 🔐 Privacy
 
-## Join the community
+Nudge is designed with a local-first approach.
 
-Join our community of developers creating universal apps.
+Your habits and progress stay on your device. Nudge does not require an account or rely on unnecessary data collection.
 
-- [Expo on GitHub](https://github.com/expo/expo): View our open source platform and contribute.
-- [Discord community](https://chat.expo.dev): Chat with Expo users and ask questions.
+## 🚧 Status
+
+Nudge is currently in its **first public release — v1.0.0**.
+
+More features and improvements are planned.
+
+---
+
+Made with ❤️ and a little help from an otter. 🦦
