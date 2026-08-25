@@ -5,6 +5,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { Colors, Spacing, Typography, Layout, Radius } from '@/constants/theme';
 import { Divider } from '@/components/ui/Divider';
+import { TinyOtter } from '@/components/mascot';
 import { useAppStore } from '@/stores/appStore';
 import * as haptics from '@/services/haptics';
 import * as notifications from '@/services/notifications';
@@ -179,6 +180,10 @@ export default function SettingsScreen() {
               onPress={() => {}}
             />
           </View>
+          {/* Tiny otter footer detail */}
+          <View style={styles.aboutFooter}>
+            <TinyOtter state="sleepy" animate accessibilityLabel={null} />
+          </View>
         </View>
 
         <View style={{ height: 100 }} />
@@ -241,5 +246,10 @@ const styles = StyleSheet.create({
   rowValue: {
     ...Typography.secondary,
     color: Colors.light.textSecondary,
+  },
+  aboutFooter: {
+    alignItems: 'center',
+    paddingTop: Spacing.xxl,
+    paddingBottom: Spacing.sm,
   },
 });
