@@ -5,6 +5,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { Colors, Spacing, Typography, Radius, Layout, HEATMAP_LEVELS } from '@/constants/theme';
 import { Stat } from '@/components/ui/Stat';
 import { EmptyState } from '@/components/ui/EmptyState';
+import { TinyOtter } from '@/components/mascot';
 import * as HabitRepo from '@/database/repositories/habitRepository';
 import * as LogRepo from '@/database/repositories/logRepository';
 import * as StreakRepo from '@/database/repositories/streakRepository';
@@ -38,18 +39,16 @@ export default function AnalyticsScreen() {
     }
     setHeatmapData(heatMap);
 
-    // Weekly stats
+    // Weekly stats — daily completion rate
     const weekDates = lastNDays(7);
-    const weekLogs = allLogs.filter((l) => l.date_str >= weekDates[0]);
-    const weekCompleted = weekLogs.filter((l) => l.is_completed).length;
-    const weekTotal = scheduledCount(activeHabits, weekDates, weekLogs);
+    const { completedDays: weekCompleted, totalDays: weekTotal } =
+      computeDailyCompletionRate(activeHabits, weekDates, allLogs);
     setWeeklyStats({ completed: weekCompleted, total: weekTotal });
 
-    // Monthly stats
+    // Monthly stats — daily completion rate
     const monthDates = lastNDays(30);
-    const monthLogs = allLogs.filter((l) => l.date_str >= monthDates[0]);
-    const monthCompleted = monthLogs.filter((l) => l.is_completed).length;
-    const monthTotal = scheduledCount(activeHabits, monthDates, monthLogs);
+    const { completedDays: monthCompleted, totalDays: monthTotal } =
+      computeDailyCompletionRate(activeHabits, monthDates, allLogs);
     setMonthlyStats({ completed: monthCompleted, total: monthTotal });
   }, []);
 
@@ -71,7 +70,7 @@ export default function AnalyticsScreen() {
     return (
       <SafeAreaView style={styles.safe} edges={['top']}>
         <EmptyState
-          icon="bar-chart-outline"
+          otterState="curious"
           title="No data yet"
           message="Complete some habits to see your analytics."
         />
@@ -82,7 +81,15 @@ export default function AnalyticsScreen() {
   return (
     <SafeAreaView style={styles.safe} edges={['top']}>
       <ScrollView style={styles.container} showsVerticalScrollIndicator={false}>
-        <Text style={styles.screenTitle}>Analytics</Text>
+        <View style={styles.screenTitleRow}>
+          <Text style={styles.screenTitle}>Analytics</Text>
+          {/* Otter quietly observing analytics */}
+          <TinyOtter
+            state={totalCompletions > 0 ? 'proud' : 'neutral'}
+            animate
+            accessibilityLabel={null}
+          />
+        </View>
 
         {/* Overall Stats */}
         <Animated.View entering={FadeInDown.duration(260)} style={styles.statsRow}>
@@ -170,18 +177,44 @@ export default function AnalyticsScreen() {
   );
 }
 
-function scheduledCount(habits: Habit[], dates: string[], logs: { habit_id: string; date_str: string; is_completed: boolean }[]) {
-  return habits.reduce((total, habit) => {
-    const habitLogs = logs.filter((log) => log.habit_id === habit.id);
-    if (habit.frequency_type === 'weekly_target') {
-      // A weekly target is a quota, not seven independent daily obligations.
-      return total + Math.min(habit.weekly_target, dates.length);
-    }
-    return total + dates.filter((date) => isScheduledForDate(
-      habit.frequency_type, date, habit.created_at, habit.target_days_mask,
-      habit.interval_days, habit.weekly_target, habitLogs,
-    )).length;
-  }, 0);
+/**
+ * Compute daily completion rate for a set of habits over a date range.
+ *
+ * Returns:
+ *   totalDays     – number of days in the range that had ≥1 scheduled habit
+ *   completedDays – number of those days where ALL scheduled habits were completed
+ *
+ * This gives a meaningful percentage: "what fraction of active days did you
+ * fully complete?"  A day with 2/2 habits done counts as 1 completed day,
+ * not 2.
+ */
+function computeDailyCompletionRate(
+  habits: Habit[],
+  dates: string[],
+  allLogs: { habit_id: string; date_str: string; is_completed: boolean }[],
+): { completedDays: number; totalDays: number } {
+  let completedDays = 0;
+  let totalDays = 0;
+
+  for (const date of dates) {
+    const scheduledHabits = habits.filter((h) =>
+      isScheduledForDate(
+        h.frequency_type, date, h.created_at, h.target_days_mask,
+        h.interval_days, h.weekly_target,
+        allLogs.filter((l) => l.habit_id === h.id),
+      ),
+    );
+    if (scheduledHabits.length === 0) continue;
+
+    totalDays++;
+
+    const allDone = scheduledHabits.every((h) =>
+      allLogs.some((l) => l.habit_id === h.id && l.date_str === date && l.is_completed),
+    );
+    if (allDone) completedDays++;
+  }
+
+  return { completedDays, totalDays };
 }
 
 const styles = StyleSheet.create({
@@ -192,12 +225,17 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
   },
-  screenTitle: {
-    ...Typography.largeHeading,
-    color: Colors.light.text,
+  screenTitleRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
     paddingHorizontal: Layout.screenPaddingHorizontal,
     paddingTop: Spacing.lg,
     paddingBottom: Spacing.xl,
+  },
+  screenTitle: {
+    ...Typography.largeHeading,
+    color: Colors.light.text,
   },
   statsRow: {
     flexDirection: 'row',
