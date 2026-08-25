@@ -8,17 +8,40 @@ import { useTodayHabits } from '@/hooks/useHabits';
 import { ProgressCircle } from '@/components/home/ProgressCircle';
 import { HabitRow } from '@/components/home/HabitRow';
 import { EmptyState } from '@/components/ui/EmptyState';
+import { Mascot, getOtterMessage, OtterMessage } from '@/components/mascot';
+import type { OtterState } from '@/components/mascot';
 import { getGreeting, formatDayFull, todayStr } from '@/utils/date';
 import * as haptics from '@/services/haptics';
 import ConfettiCannon from 'react-native-confetti-cannon';
 
+/* ── Derive otter emotional state from progress ────────────────────────── */
+
+function deriveOtterState(
+  completed: number,
+  total: number,
+  justCompleted: boolean,
+): OtterState {
+  if (total === 0) return 'neutral';
+  const ratio = completed / total;
+
+  if (ratio === 0) return 'encouraging';
+  if (ratio < 0.4) return justCompleted ? 'happy' : 'curious';
+  if (ratio < 0.8) return justCompleted ? 'happy' : 'curious';
+  if (ratio < 1) return justCompleted ? 'proud' : 'curious';
+  // ratio === 1 — all done
+  return 'celebrating';
+}
+
 export default function HomeScreen() {
   const router = useRouter();
   const { habitsWithStatus, progress, loading, refresh } = useTodayHabits();
-  const [refreshing, setRefreshing] = React.useState(false);
+  const [refreshing, setRefreshing] = useState(false);
   const [celebrating, setCelebrating] = useState(false);
   const wasComplete = useRef<boolean | null>(null);
+  const [justCompleted, setJustCompleted] = useState(false);
+  const justCompletedTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
+  // Track completion transitions
   useEffect(() => {
     const complete = progress.total > 0 && progress.completed === progress.total;
     if (wasComplete.current === false && complete) {
@@ -27,6 +50,18 @@ export default function HomeScreen() {
     }
     wasComplete.current = complete;
   }, [progress.completed, progress.total]);
+
+  // Track individual completions for otter reactions
+  useEffect(() => {
+    if (progress.completed > 0) {
+      setJustCompleted(true);
+      if (justCompletedTimer.current) clearTimeout(justCompletedTimer.current);
+      justCompletedTimer.current = setTimeout(() => setJustCompleted(false), 2500);
+    }
+    return () => {
+      if (justCompletedTimer.current) clearTimeout(justCompletedTimer.current);
+    };
+  }, [progress.completed]);
 
   const onRefresh = useCallback(async () => {
     setRefreshing(true);
@@ -42,6 +77,10 @@ export default function HomeScreen() {
     haptics.selection();
     router.push('/habits/create');
   }, [router]);
+
+  // Otter state and message
+  const otterState = deriveOtterState(progress.completed, progress.total, justCompleted);
+  const otterMessage = getOtterMessage(progress.completed, progress.total);
 
   return (
     <SafeAreaView style={styles.safe} edges={['top']}>
@@ -73,16 +112,33 @@ export default function HomeScreen() {
           </View>
         </View>
 
-        {/* Daily Progress */}
-        <View style={styles.progressSection}>
-          <ProgressCircle completed={progress.completed} total={progress.total} />
-          <Text style={styles.progressLabel}>Daily progress</Text>
+        {/* Mascot + Progress Composition */}
+        <View style={styles.heroSection}>
+          {/* Otter with contextual message */}
+          <View style={styles.mascotArea}>
+            <Mascot
+              state={otterState}
+              size="medium"
+              context="idle-home"
+              animate
+              accessibilityLabel={null}
+            />
+          </View>
+
+          {/* Otter's contextual message */}
+          <OtterMessage message={otterMessage} messageKey={`${progress.completed}-${progress.total}`} />
+
+          {/* Daily Progress */}
+          <View style={styles.progressSection}>
+            <ProgressCircle completed={progress.completed} total={progress.total} />
+            <Text style={styles.progressLabel}>Daily progress</Text>
+          </View>
         </View>
 
         {/* Habits */}
         {scheduledHabits.length === 0 && !loading ? (
           <EmptyState
-            icon="add-circle-outline"
+            otterState="encouraging"
             title="No habits yet"
             message="Start with one small habit that matters to you."
             actionTitle="Create Habit"
@@ -168,9 +224,20 @@ const styles = StyleSheet.create({
     color: Colors.light.textSecondary,
     marginTop: Spacing.xxs,
   },
+  /* Hero section: otter + message + progress circle */
+  heroSection: {
+    alignItems: 'center',
+    paddingVertical: Spacing.lg,
+    gap: Spacing.xs,
+  },
+  mascotArea: {
+    alignItems: 'center',
+    justifyContent: 'center',
+    height: 130,
+  },
   progressSection: {
     alignItems: 'center',
-    paddingVertical: Spacing.xxl,
+    paddingTop: Spacing.sm,
     gap: Spacing.sm,
   },
   progressLabel: {
